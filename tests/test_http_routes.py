@@ -61,7 +61,7 @@ class HttpRoutesTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.fake = FakeService()
         server.ZERNIO_SERVICE = cls.fake
-        server.ZERNIO_WEBHOOK_SECRET = "webhook-secret"
+        server.ZERNIO_WEBHOOK_SECRET = "webhook-secret"  # pragma: allowlist secret — test fixture
         server.TELEGRAM_BOT_TOKEN = BOT_TOKEN
         server.ALLOWED_TELEGRAM_USERS = {42}
         cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)

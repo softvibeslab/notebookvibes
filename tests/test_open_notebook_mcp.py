@@ -22,7 +22,7 @@ class McpServerContractTest(unittest.TestCase):
             env_path = Path(directory) / ".env"
             env_path.write_text(
                 "OPEN_NOTEBOOK_URL='http://127.0.0.1:8502'\n"
-                "OPEN_NOTEBOOK_PASSWORD='profile-secret'\n"
+                "OPEN_NOTEBOOK_PASSWORD='profile-secret'\n"  # pragma: allowlist secret — test fixture
             )
             with patch.dict(os.environ, {}, clear=True):
                 client = open_notebook_mcp.make_client(env_path=str(env_path))

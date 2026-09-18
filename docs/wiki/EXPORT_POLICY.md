@@ -4,7 +4,7 @@
 
 - identidad y metodología (`SOUL.md`);
 - configuración reproducible con placeholders;
-- skills propios relevantes y sus recursos;
+- skills propios relevantes y sus recursos (los seis personalizados detectados fuera del catálogo bundled);
 - código MCP, Mini App, integraciones y pruebas;
 - automatizaciones de solo lectura;
 - documentación técnica y un dashboard de ejemplo saneado;

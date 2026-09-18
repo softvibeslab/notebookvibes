@@ -4,7 +4,7 @@ Repositorio portable del perfil Hermes `notebookllm`: investigación profunda, p
 
 ## Qué contiene
 
-- `profile/`: identidad del agente, configuración saneada y skills propios relevantes.
+- `profile/`: identidad del agente, configuración saneada y los seis skills personalizados detectados fuera del catálogo bundled de Hermes.
 - `tools/`: servidores MCP `open-notebook` y `research-web`.
 - `composio-telegram-miniapp/`: frontend y backend de la Mini App.
 - `integratevibes/`: autenticación Telegram, persistencia y cliente/orquestación Zernio.

@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import os
 import re
 import subprocess
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-TZ = ZoneInfo("America/Cancun")
+TZ = ZoneInfo(os.getenv("NOTEBOOKVIBES_TIMEZONE", "America/Cancun"))
+GITHUB_ACCOUNT = os.getenv("GITHUB_ACCOUNT", "example-org")
 NOW = datetime.now(TZ)
 TODAY = NOW.date()
 TOMORROW = TODAY + timedelta(days=1)
@@ -221,7 +223,7 @@ requests = {
         "include_spam_trash": False,
     }),
     "github": ("GITHUB_SEARCH_ISSUES_AND_PULL_REQUESTS", {
-        "q": f"user:softvibeslab updated:>={ (TODAY - timedelta(days=1)).isoformat() }",
+        "q": f"user:{GITHUB_ACCOUNT} updated:>={ (TODAY - timedelta(days=1)).isoformat() }",
         "page": 1,
         "sort": "updated",
         "order": "desc",
@@ -266,7 +268,7 @@ while len(priorities) < 3:
     priorities.append("Revisar pendientes manuales; no hubo otra señal verificable en las fuentes consultadas")
 
 print(f"# Brief ejecutivo — {TODAY.isoformat()}\n")
-print(f"**Corte:** {NOW.strftime('%H:%M')} · **Zona:** America/Cancun · **Modo:** solo lectura\n")
+print(f"**Corte:** {NOW.strftime('%H:%M')} · **Zona:** {getattr(TZ, 'key', str(TZ))} · **Modo:** solo lectura\n")
 print("## Tres prioridades")
 for i, item in enumerate(priorities[:3], 1):
     print(f"{i}. {item}")
@@ -298,7 +300,7 @@ if github:
         state = f" · {item['state']}" if item["state"] else ""
         print(f"- {kind}: **{item['title']}**{state}")
 else:
-    print("- No se recuperó actividad reciente de issues o pull requests de softvibeslab.")
+    print(f"- No se recuperó actividad reciente de issues o pull requests de {GITHUB_ACCOUNT}.")
 
 print("\n## Notion")
 if notion:

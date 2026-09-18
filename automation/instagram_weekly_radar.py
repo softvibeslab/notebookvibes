@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Radar semanal de Instagram Business, exclusivamente de lectura."""
 from __future__ import annotations
-import concurrent.futures, json, re, subprocess
+import concurrent.futures, json, os, re, subprocess
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-TZ=ZoneInfo('America/Cancun'); NOW=datetime.now(TZ); START=NOW-timedelta(days=7)
+TZ=ZoneInfo(os.getenv('NOTEBOOKVIBES_TIMEZONE','America/Cancun')); NOW=datetime.now(TZ); START=NOW-timedelta(days=7)
+INSTAGRAM_USERNAME=os.getenv('INSTAGRAM_USERNAME','cuenta')
 
 def clean(x,n=150):
  s=re.sub(r'\s+',' ',str(x or '')).strip(); return s if len(s)<=n else s[:n-1]+'…'
@@ -83,8 +84,8 @@ errors={}
 for k,v in {'perfil':profile,**res}.items():
  if isinstance(v,dict) and v.get('_error'):errors[k]=v['_error']
 
-print(f"# Radar semanal de Instagram — @{prof.get('username','rogermck')}\n")
-print(f"**Periodo:** {START.date().isoformat()} a {NOW.date().isoformat()} · **Zona:** America/Cancun · **Modo:** solo lectura\n")
+print(f"# Radar semanal de Instagram — @{prof.get('username',INSTAGRAM_USERNAME)}\n")
+print(f"**Periodo:** {START.date().isoformat()} a {NOW.date().isoformat()} · **Zona:** {getattr(TZ,'key',str(TZ))} · **Modo:** solo lectura\n")
 print('## Estado de cuenta')
 print(f"- Seguidores: **{int(num(prof.get('followers_count'))):,}**")
 print(f"- Publicaciones acumuladas: **{int(num(prof.get('media_count'))):,}**")
@@ -118,7 +119,7 @@ if reach and engaged/reach<0.05:print('2. Añadir una llamada a comentar, guarda
 else:print('2. Mantener llamadas explícitas a comentar, guardar y compartir para convertir alcance en señal útil.')
 print('3. Comparar cada semana por formato y tema; no atribuir nichos a seguidores individuales.')
 print('\n## Límites')
-print('- El análisis usa datos agregados oficiales y hasta 25 piezas recientes; no representa necesariamente las 575 publicaciones históricas.')
+print('- El análisis usa datos agregados oficiales y hasta 25 piezas recientes; no representa necesariamente el histórico completo de publicaciones.')
 print('- Instagram no ofrece una lista completa de identidades de seguidores mediante esta integración.')
 for k,e in errors.items():print(f"- {k}: {clean(e,180)}")
 print('- No se publicó, respondió ni modificó contenido.')

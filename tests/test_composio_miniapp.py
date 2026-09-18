@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import subprocess
+import sys
 import threading
 import unittest
 from pathlib import Path
@@ -19,6 +22,24 @@ class CatalogTests(unittest.TestCase):
     def setUp(self) -> None:
         server._status_cache = None
         server._catalog_cache = None
+        server._status_failure = None
+
+    def test_server_can_load_when_executed_directly_from_its_directory(self) -> None:
+        env = os.environ.copy()
+        env.pop("PYTHONPATH", None)
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import runpy; runpy.run_path('server.py', run_name='not_main')",
+            ],
+            cwd=SERVER_PATH.parent,
+            env=env,
+            text=True,
+            capture_output=True,
+            timeout=10,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     @staticmethod
     def available_toolkits() -> list[dict]:
@@ -58,6 +79,9 @@ class CatalogTests(unittest.TestCase):
         self.assertIs(first, second)
         self.assertEqual(first["active"], 1)
         self.assertEqual(first["total"], 8)
+        self.assertIn("categories", first)
+        self.assertEqual(sum(item["count"] for item in first["categories"]), first["total"])
+        self.assertTrue(all(item["name"] in server.CATEGORY_ORDER for item in first["categories"]))
 
     def test_status_lock_collapses_concurrent_refreshes(self) -> None:
         barrier = threading.Barrier(4)
@@ -82,6 +106,31 @@ class CatalogTests(unittest.TestCase):
                 thread.join()
         self.assertEqual(run.call_count, 1)
         self.assertEqual(len(results), 3)
+
+    def test_status_failure_backoff_collapses_concurrent_retries(self) -> None:
+        barrier = threading.Barrier(4)
+        errors: list[str] = []
+
+        def failing_run(_args: list[str]) -> dict:
+            raise RuntimeError("Composio failed")
+
+        def worker() -> None:
+            barrier.wait()
+            try:
+                server.get_catalog_status()
+            except RuntimeError as exc:
+                errors.append(str(exc))
+
+        server._status_failure = None
+        with mock.patch.object(server, "run_composio", side_effect=failing_run) as run:
+            threads = [threading.Thread(target=worker) for _ in range(3)]
+            for thread in threads:
+                thread.start()
+            barrier.wait()
+            for thread in threads:
+                thread.join()
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(errors, ["Composio failed"] * 3)
 
     def test_complete_catalog_merges_recommendations_and_other_apps(self) -> None:
         available = self.available_toolkits() + [
@@ -111,11 +160,36 @@ class CatalogTests(unittest.TestCase):
         self.assertFalse(by_slug["hackernews"]["connectable"])
         self.assertEqual(by_slug["hackernews"]["status"], "available")
 
+    def test_categories_cover_common_composio_families(self) -> None:
+        samples = {
+            "googledrive": ("Google Drive", "Cloud storage for files and documents", "Documentos y archivos"),
+            "slack": ("Slack", "Team messaging and channels", "Comunicación"),
+            "github": ("GitHub", "Code repositories and developer collaboration", "Desarrollo y datos"),
+            "hubspot": ("HubSpot", "CRM for sales teams and leads", "Ventas y CRM"),
+            "stripe": ("Stripe", "Payments and billing infrastructure", "Finanzas y pagos"),
+            "figma": ("Figma", "Collaborative interface design", "Diseño y contenido"),
+        }
+        for slug, (name, description, expected) in samples.items():
+            with self.subTest(slug=slug):
+                self.assertEqual(server.infer_category(slug, name, description), expected)
+
+    def test_every_catalog_item_has_a_filterable_category(self) -> None:
+        available = self.available_toolkits() + [
+            {"slug": "unknown_connector", "name": "Unknown Connector", "description": "Specialized business utility"},
+        ]
+        catalog = server.toolkit_catalog({}, available)
+        self.assertTrue(all(item["category"] in server.CATEGORY_ORDER for item in catalog))
+        self.assertEqual({item["slug"]: item["category"] for item in catalog}["unknown_connector"], "Otros")
+
     def test_frontend_has_search_and_no_embedded_secret(self) -> None:
         html = (ROOT / "composio-telegram-miniapp" / "index.html").read_text()
         javascript = (ROOT / "composio-telegram-miniapp" / "app.js").read_text()
         self.assertIn('id="integration-search"', html)
+        self.assertIn('id="category-filters"', html)
+        self.assertIn('aria-label="Filtrar integraciones por categoría"', html)
         self.assertIn('type="search"', html)
+        self.assertIn("activeCategory", javascript)
+        self.assertIn("button.dataset.category", javascript)
         self.assertIn('aria-live="polite"', html)
         self.assertNotIn("MINIAPP_ACCESS_TOKEN", html + javascript)
         self.assertNotIn("ZERNIO_API_KEY", html + javascript)

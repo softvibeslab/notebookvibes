@@ -46,7 +46,7 @@ data={
 }
 
 brief=data['brief'];meet=data['meet'];ig=data['ig'];gh=data['gh'];active,expired=data['conn']
-parts=[f"# Control Tower integral — {NOW.date().isoformat()}\n",f"**Corte:** {NOW.strftime('%H:%M')} · **Zona:** America/Cancun · **Modo:** solo lectura\n"]
+parts=[f"# Control Tower integral — {NOW.date().isoformat()}\n",f"**Corte:** {NOW.strftime('%H:%M')} · **Zona:** {getattr(TZ,'key',str(TZ))} · **Modo:** solo lectura\n"]
 parts.append('## Prioridades ejecutivas\n'+(section(brief,'Tres prioridades','Agenda de hoy y mañana',5) or '- No se recuperaron prioridades.'))
 meeting_block=''
 if meet.startswith('# Asistente'):

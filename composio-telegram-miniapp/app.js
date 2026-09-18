@@ -69,6 +69,7 @@
   const refresh = document.getElementById("refresh");
   const search = document.getElementById("integration-search");
   const filters = document.getElementById("filters");
+  const categoryFilters = document.getElementById("category-filters");
   const resultsCount = document.getElementById("results-count");
   const activeFilter = document.getElementById("active-filter");
   const loadMore = document.getElementById("load-more");
@@ -81,8 +82,10 @@
   const telegramCheck = document.getElementById("telegram-check");
 
   let catalog = [];
+  let categorySummary = [];
   let zernioPlatforms = [];
   let viewMode = "recommended";
+  let activeCategory = "Todas";
   let activeModule = "composio";
   let visibleLimit = PAGE_SIZE;
   let lastLoadedAt = 0;
@@ -114,6 +117,7 @@
   }
 
   function matches(toolkit, query) {
+    if (activeCategory !== "Todas" && toolkit.category !== activeCategory) return false;
     if (!query) {
       if (viewMode === "recommended") return toolkit.recommended;
       if (viewMode === "connected") return toolkit.status === "active";
@@ -236,6 +240,21 @@
     }
   }
 
+  function renderCategoryFilters() {
+    const categories = [{ name: "Todas", count: catalog.length }, ...categorySummary];
+    categoryFilters.replaceChildren();
+    for (const item of categories) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "filter";
+      button.textContent = `${item.name} · ${item.count}`;
+      button.dataset.category = item.name;
+      button.setAttribute("aria-pressed", String(item.name === activeCategory));
+      button.setAttribute("aria-label", `${item.name}: ${item.count} integraciones`);
+      categoryFilters.append(button);
+    }
+  }
+
   function render() {
     const query = search.value.trim();
     const matchesCatalog = catalog.filter((toolkit) => matches(toolkit, query));
@@ -246,8 +265,11 @@
     resultsCount.textContent = visible.length < matchesCatalog.length
       ? `${visible.length} de ${matchesCatalog.length} integraciones`
       : `${matchesCatalog.length} ${matchesCatalog.length === 1 ? "integración" : "integraciones"}`;
-    activeFilter.textContent = query ? "Resultados en todo el catálogo" :
+    const viewLabel = query ? "Búsqueda" :
       ({ recommended: "Recomendadas", connected: "Conectadas", all: "Todas" }[viewMode]);
+    activeFilter.textContent = activeCategory === "Todas"
+      ? viewLabel
+      : `${viewLabel} · ${activeCategory}`;
   }
 
   function renderZernio() {
@@ -270,9 +292,14 @@
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo consultar el estado");
       catalog = data.toolkits;
+      categorySummary = Array.isArray(data.categories) ? data.categories : [];
+      if (activeCategory !== "Todas" && !categorySummary.some((item) => item.name === activeCategory)) {
+        activeCategory = "Todas";
+      }
       visibleLimit = PAGE_SIZE;
       lastLoadedAt = Date.now();
       renderFilters();
+      renderCategoryFilters();
       render();
       document.getElementById("headline").textContent = `${data.active} de ${data.total} conectadas`;
       document.getElementById("subline").textContent = data.active
@@ -419,6 +446,16 @@
     for (const filter of filters.querySelectorAll(".filter")) filter.setAttribute("aria-pressed", String(filter === button));
     render();
   });
+  categoryFilters.addEventListener("click", (event) => {
+    const button = event.target.closest(".filter");
+    if (!button) return;
+    activeCategory = button.dataset.category;
+    visibleLimit = PAGE_SIZE;
+    for (const filter of categoryFilters.querySelectorAll(".filter")) {
+      filter.setAttribute("aria-pressed", String(filter === button));
+    }
+    render();
+  });
   const moduleTabs = document.querySelector(".module-tabs");
   moduleTabs.addEventListener("click", (event) => {
     const button = event.target.closest(".module-tab");
@@ -476,5 +513,6 @@
   window.addEventListener("popstate", () => selectModule(new URL(location.href).searchParams.get("module"), { updateUrl: false }));
 
   renderFilters();
+  renderCategoryFilters();
   selectModule(new URL(location.href).searchParams.get("module"), { updateUrl: false });
 })();

@@ -66,7 +66,7 @@ events.sort(key=lambda x:x[0])
 if not events: raise SystemExit
 
 print('# Asistente de reuniones\n')
-print(f"**Ventana:** {NOW.strftime('%Y-%m-%d %H:%M')}–{end.strftime('%Y-%m-%d %H:%M')} · **Zona:** America/Cancun · **Modo:** solo lectura\n")
+print(f"**Ventana:** {NOW.strftime('%Y-%m-%d %H:%M')}–{end.strftime('%Y-%m-%d %H:%M')} · **Zona:** {getattr(TZ,'key',str(TZ))} · **Modo:** solo lectura\n")
 for dt,key,title,o in events:
     # Una palabra significativa ayuda a buscar contexto sin exponer todo el calendario.
     words=[w for w in re.findall(r'[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9_-]+',title) if len(w)>=4 and w.lower() not in {'reunión','meeting','daily','dayli'}]

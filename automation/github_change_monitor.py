@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 TZ=ZoneInfo(os.getenv('NOTEBOOKVIBES_TIMEZONE', 'America/Cancun')); NOW=datetime.now(TZ); DRY=os.getenv('GITHUB_MONITOR_DRY_RUN','0')=='1'
+GITHUB_ACCOUNT=os.getenv('GITHUB_ACCOUNT','example-org')
 STATE=Path(os.getenv('GITHUB_MONITOR_STATE', str(Path.home()/'.local/state/notebookvibes/github_monitor_state.json')))
 def clean(x,n=150):
  s=re.sub(r'\s+',' ',str(x or '')).strip();return s if len(s)<=n else s[:n-1]+'…'
@@ -29,7 +30,7 @@ def load():
 def save(x):
  STATE.parent.mkdir(parents=True,exist_ok=True);STATE.write_text(json.dumps(x,indent=2))
 
-resp=call('GITHUB_SEARCH_ISSUES_AND_PULL_REQUESTS',{'q':f'user:softvibeslab updated:>={(NOW-timedelta(days=2)).date().isoformat()}','page':1,'sort':'updated','order':'desc','per_page':30,'response_detail':'full'})
+resp=call('GITHUB_SEARCH_ISSUES_AND_PULL_REQUESTS',{'q':f'user:{GITHUB_ACCOUNT} updated:>={(NOW-timedelta(days=2)).date().isoformat()}','page':1,'sort':'updated','order':'desc','per_page':30,'response_detail':'full'})
 if resp.get('_error'):
  print(f"# Monitor GitHub\n\n- GitHub no respondió: {resp['_error']}");raise SystemExit
 items=[];seen=set()
@@ -54,7 +55,7 @@ state={k:v for k,v in state.items() if k in {x['url'] for x in items}}
 if not DRY:save(state)
 if not changed:raise SystemExit
 print('# Monitor GitHub — novedades\n')
-print(f"**Corte:** {NOW.strftime('%Y-%m-%d %H:%M')} · **Cuenta:** softvibeslab · **Modo:** solo lectura\n")
+print(f"**Corte:** {NOW.strftime('%Y-%m-%d %H:%M')} · **Cuenta:** {GITHUB_ACCOUNT} · **Modo:** solo lectura\n")
 for x in changed[:15]:
  kind='PR' if x['pr'] else 'Issue';repo=f" · {x['repo']}" if x['repo'] else ''
  labs=f" · etiquetas: {', '.join(x['labels'][:4])}" if x['labels'] else ''

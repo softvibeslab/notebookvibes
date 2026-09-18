@@ -17,5 +17,7 @@ Investigar en español con trazabilidad, priorizar fuentes primarias, separar he
 - `social-audience-intelligence`: análisis agregado y respetuoso con privacidad.
 - `evidence-grounded-dashboards`: dashboards trazables y verificables.
 - `composio-telegram-miniapp`: operación y transferencia de la Mini App.
+- `composio-connected-app-operations`: operaciones verificadas sobre aplicaciones conectadas.
+- `hosted-tool-platform-integrations`: patrones seguros para plataformas MCP/OAuth alojadas.
 
 El perfil vivo dispone además de skills generales instalados por Hermes. No se duplican aquí: deben instalarse desde sus distribuciones originales para evitar vendorear todo el catálogo y mezclar responsabilidades/licencias.

@@ -51,7 +51,7 @@ class ResearchWebTest(unittest.TestCase):
 
     def test_rejects_urls_with_embedded_credentials(self):
         with self.assertRaises(UnsafeURL):
-            validate_public_url("https://user:password@example.com/")
+            validate_public_url("https://user:password@example.com/")  # pragma: allowlist secret — test fixture
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ import secrets
 import shutil
 import sqlite3
 import subprocess
+import sys
 import threading
 import time
 from html import escape
@@ -16,6 +17,11 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+
+# Permite ejecutar este archivo directamente desde un checkout sin instalar el paquete.
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from integratevibes.integration_service import (
     IntegrationService,
@@ -32,6 +38,7 @@ HOST = os.environ.get("MINIAPP_HOST", "127.0.0.1")
 PORT = int(os.environ.get("MINIAPP_PORT", "49234"))
 COMPOSIO = shutil.which("composio") or str(Path.home() / ".local/bin/composio")
 STATUS_CACHE_SECONDS = 30
+STATUS_FAILURE_CACHE_SECONDS = 30
 CATALOG_CACHE_SECONDS = 3600
 ZERNIO_SESSION_TTL_SECONDS = 7200
 CATALOG_LIMIT = 2000
@@ -133,8 +140,144 @@ TOOLKITS = {
     },
 }
 
+CATEGORY_ORDER = (
+    "Documentos y archivos",
+    "Comunicación",
+    "Productividad y proyectos",
+    "Investigación e IA",
+    "Desarrollo y datos",
+    "Ventas y CRM",
+    "Marketing",
+    "Redes sociales",
+    "Diseño y contenido",
+    "Finanzas y pagos",
+    "Comercio",
+    "Soporte al cliente",
+    "RR. HH.",
+    "Educación",
+    "Seguridad y operaciones",
+    "Otros",
+)
+
+CATEGORY_SLUGS = {
+    "Documentos y archivos": {
+        "googledrive", "googledocs", "googlesheets", "googleslides", "dropbox",
+        "one_drive", "box", "docusign", "googlephotos", "text_to_pdf",
+    },
+    "Comunicación": {
+        "gmail", "outlook", "slack", "slackbot", "microsoft_teams", "discord",
+        "discordbot", "whatsapp", "telegram", "sendgrid", "brevo", "mailchimp",
+        "googlemeet", "zoom", "twilio", "intercom",
+    },
+    "Productividad y proyectos": {
+        "notion", "googlecalendar", "googletasks", "airtable", "linear", "jira",
+        "asana", "clickup", "trello", "monday", "wrike", "calendly", "cal",
+        "coda", "shortcut", "productboard",
+    },
+    "Investigación e IA": {
+        "perplexityai", "serpapi", "tavily", "exa", "semanticscholar",
+        "hackernews", "composio_search", "yousearch", "linkup", "mem0",
+        "mistral_ai", "openai", "anthropic", "consensus_mcp",
+    },
+    "Desarrollo y datos": {
+        "github", "gitlab", "bitbucket", "supabase", "snowflake", "neon",
+        "googlebigquery", "codeinterpreter", "posthog", "mixpanel", "amplitude",
+    },
+    "Ventas y CRM": {
+        "hubspot", "salesforce", "pipedrive", "apollo", "attio", "zoho",
+        "dynamics365", "affinity", "contactout", "people_data_labs",
+    },
+    "Marketing": {
+        "googleads", "metaads", "semrush", "ahrefs", "klaviyo", "constant_contact",
+    },
+    "Redes sociales": {
+        "youtube", "twitter", "facebook", "instagram", "linkedin", "tiktok",
+        "threads", "reddit",
+    },
+    "Diseño y contenido": {
+        "figma", "canva", "elevenlabs", "heygen", "lmnt", "listennotes",
+        "abyssale", "contentdrips", "mobbin_mcp",
+    },
+    "Finanzas y pagos": {
+        "stripe", "paypal", "coinbase", "quickbooks", "xero", "plaid",
+    },
+    "Comercio": {
+        "shopify", "woocommerce", "gumroad", "junglescout", "bestbuy",
+        "asin_data_api",
+    },
+    "Soporte al cliente": {"zendesk", "freshdesk", "helpscout", "gorgias"},
+    "RR. HH.": {"bamboohr", "workday", "greenhouse", "lever"},
+    "Educación": {"canvas", "moodle", "google_classroom"},
+    "Seguridad y operaciones": {
+        "sentry", "borneo", "browserbase_tool", "browser_tool", "firecrawl",
+        "zenrows", "cloudflare", "datadog",
+    },
+}
+
+CATEGORY_KEYWORDS = {
+    "Documentos y archivos": (
+        "cloud storage", "file storage", "document management", "documents", "document",
+        "spreadsheets", "spreadsheet", "pdf", "e-signature", "file sharing",
+    ),
+    "Comunicación": (
+        "email", "messaging", "team communication", "chat", "video conferencing",
+        "meetings", "sms", "inbox", "channel-based messaging",
+    ),
+    "Productividad y proyectos": (
+        "project management", "task management", "scheduling", "calendar", "workflow",
+        "productivity", "issue tracking", "time tracking", "workspace", "to-do",
+    ),
+    "Investigación e IA": (
+        "artificial intelligence", "generative ai", "language model", "academic search",
+        "search engine", "web search", "research", "knowledge graph", "machine learning",
+    ),
+    "Desarrollo y datos": (
+        "developer", "code hosting", "repository", "database", "postgres", "sql",
+        "data warehouse", "data analytics", "api platform", "backend-as-a-service",
+    ),
+    "Ventas y CRM": (
+        "crm", "sales", "lead generation", "lead management", "sales pipeline",
+        "prospecting", "customer relationship",
+    ),
+    "Marketing": (
+        "marketing", "advertising", "seo", "campaign", "audience segmentation",
+        "conversion", "brand management",
+    ),
+    "Redes sociales": (
+        "social media", "social network", "video-sharing", "community platform",
+        "professional networking",
+    ),
+    "Diseño y contenido": (
+        "design tool", "content creation", "video creation", "audio", "voice",
+        "image generation", "creative automation", "podcast", "media management",
+    ),
+    "Finanzas y pagos": (
+        "payment", "billing", "accounting", "banking", "finance", "invoice",
+        "cryptocurrency", "expense management",
+    ),
+    "Comercio": (
+        "e-commerce", "ecommerce", "online store", "retail", "inventory",
+        "amazon seller", "shopping",
+    ),
+    "Soporte al cliente": (
+        "customer support", "helpdesk", "help desk", "ticketing", "customer service",
+    ),
+    "RR. HH.": (
+        "human resources", "hrms", "payroll", "recruiting", "applicant tracking",
+        "employee management",
+    ),
+    "Educación": (
+        "learning management", "online courses", "education", "classroom", "students",
+    ),
+    "Seguridad y operaciones": (
+        "security", "monitoring", "observability", "error tracking", "infrastructure",
+        "devops", "web scraping", "browser automation", "deployment",
+    ),
+}
+
 _status_lock = threading.Lock()
 _status_cache: tuple[float, dict] | None = None
+_status_failure: tuple[float, str] | None = None
 _catalog_lock = threading.Lock()
 _catalog_cache: tuple[float, list[dict]] | None = None
 
@@ -209,6 +352,18 @@ def _mark_for(label: str) -> str:
     return "".join(word[0] for word in words[:2]).upper()[:3]
 
 
+def infer_category(slug: str, label: str, description: str) -> str:
+    normalized_slug = slug.strip().lower()
+    for category in CATEGORY_ORDER:
+        if normalized_slug in CATEGORY_SLUGS.get(category, set()):
+            return category
+    searchable = " ".join((normalized_slug.replace("_", " "), label, description)).casefold()
+    for category in CATEGORY_ORDER:
+        if any(keyword in searchable for keyword in CATEGORY_KEYWORDS.get(category, ())):
+            return category
+    return "Otros"
+
+
 def toolkit_catalog(connections: dict | None = None, available: list[dict] | None = None) -> list[dict]:
     connections = connections or {}
     if available is None:
@@ -237,7 +392,7 @@ def toolkit_catalog(connections: dict | None = None, available: list[dict] | Non
         metadata = {
             "label": label,
             "mark": (recommended or {}).get("mark") or _mark_for(label),
-            "category": (recommended or {}).get("category") or "Catálogo Composio",
+            "category": infer_category(slug, label, description),
             "priority": (recommended or {}).get("priority", 10_000),
             "description": (recommended or {}).get("description") or description,
             "capabilities": (recommended or {}).get("capabilities") or [
@@ -255,29 +410,41 @@ def toolkit_catalog(connections: dict | None = None, available: list[dict] | Non
 
 
 def get_catalog_status(force: bool = False) -> dict:
-    global _status_cache
-    now = time.monotonic()
+    global _status_cache, _status_failure
     with _status_lock:
+        now = time.monotonic()
         if not force and _status_cache and now - _status_cache[0] < STATUS_CACHE_SECONDS:
             return _status_cache[1]
-        connections = run_composio(["connections", "list"])
-        if not isinstance(connections, dict):
-            raise RuntimeError("Composio did not return connection statuses")
-        available = get_available_toolkits()
-        toolkits = toolkit_catalog(connections, available)
+        if not force and _status_failure and now - _status_failure[0] < STATUS_FAILURE_CACHE_SECONDS:
+            raise RuntimeError(_status_failure[1])
+        try:
+            connections = run_composio(["connections", "list"])
+            if not isinstance(connections, dict):
+                raise RuntimeError("Composio did not return connection statuses")
+            available = get_available_toolkits()
+            toolkits = toolkit_catalog(connections, available)
+        except Exception as exc:
+            _status_failure = (time.monotonic(), str(exc) or "Composio status refresh failed")
+            raise
+        category_counts = [
+            {"name": category, "count": sum(item["category"] == category for item in toolkits)}
+            for category in CATEGORY_ORDER
+        ]
         payload = {
             "ok": True,
             "toolkits": toolkits,
+            "categories": [item for item in category_counts if item["count"]],
             "active": sum(item["status"] == "active" for item in toolkits),
             "recommended": sum(item["recommended"] for item in toolkits),
             "total": len(toolkits),
         }
         _status_cache = (time.monotonic(), payload)
+        _status_failure = None
         return payload
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "ComposioMiniApp/2.0"
+    server_version = "ComposioMiniApp/4.0"
 
     def log_message(self, _format: str, *_args) -> None:
         # Avoid logging the access token embedded in the Mini App path.
@@ -368,7 +535,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = urlparse(self.path).path
         if path == "/health":
-            self.send_json({"ok": True, "service": "composio-telegram-miniapp", "version": 3})
+            self.send_json({"ok": True, "service": "composio-telegram-miniapp", "version": 4})
             return
         if path == f"/app/{ACCESS_TOKEN}" and ACCESS_TOKEN:
             body = (ROOT / "index.html").read_bytes()
