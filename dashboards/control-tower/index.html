@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Reporte interactivo de repositorios y arquitectura para Hermes Multi-AgenticOS con torre de control.">
+  <title>Hermes Multi-AgenticOS — Control Tower Research</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0c0d0f; --panel:#121418; --panel-2:#171a1f; --ink:#f4f1e8;
+      --muted:#a7a69f; --line:#2a2d33; --accent:#d5aa5c; --accent-soft:#2b2418;
+      --good:#73b893; --warn:#d9a85c; --risk:#d87970; --info:#79a8cf;
+      --radius:10px; --shadow:0 14px 45px rgba(0,0,0,.26);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,Arial,sans-serif;font-size:14px;line-height:1.55}
+    a{color:inherit}
+    button,input{font:inherit}
+    button{color:inherit}
+    .shell{min-height:100vh;display:grid;grid-template-columns:260px minmax(0,1fr)}
+    .sidebar{position:sticky;top:0;height:100vh;padding:24px 18px;border-right:1px solid var(--line);background:#0f1114;display:flex;flex-direction:column;gap:24px}
+    .brand{display:flex;align-items:center;gap:12px;padding:0 8px 18px;border-bottom:1px solid var(--line)}
+    .sigil{width:34px;height:34px;border:1px solid #6f5a31;color:var(--accent);display:grid;place-items:center;font-family:"IBM Plex Mono",monospace;font-weight:600;border-radius:50%}
+    .brand strong{display:block;font-size:14px;letter-spacing:.02em}
+    .brand span{color:var(--muted);font-size:11px}
+    nav{display:grid;gap:5px}
+    nav button{border:0;background:transparent;text-align:left;padding:10px 12px;border-radius:7px;color:var(--muted);cursor:pointer}
+    nav button:hover,nav button.active{background:var(--panel-2);color:var(--ink)}
+    nav button.active{box-shadow:inset 2px 0 0 var(--accent)}
+    .side-meta{margin-top:auto;padding:14px 12px;border:1px solid var(--line);border-radius:var(--radius);color:var(--muted);font-size:11px}
+    .side-meta code{display:block;color:var(--accent);font-family:"IBM Plex Mono",monospace;overflow-wrap:anywhere;margin-top:6px}
+    main{min-width:0}
+    .topbar{position:sticky;top:0;z-index:10;height:64px;background:rgba(12,13,15,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+    .topbar .status{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:12px}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 4px rgba(115,184,147,.08)}
+    .stamp{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-size:11px}
+    .content{max-width:1420px;margin:0 auto;padding:30px 28px 70px}
+    section[data-view]{display:none}
+    section[data-view].active{display:block}
+    .eyebrow{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.13em;margin-bottom:10px}
+    h1{font-size:clamp(28px,4vw,48px);line-height:1.06;letter-spacing:-.04em;margin:0 0 14px;max-width:860px}
+    .lead{font-size:16px;color:#c8c6bf;max-width:820px;margin:0 0 28px}
+    .summary-strip{display:grid;grid-template-columns:1.2fr repeat(3,1fr);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--panel);box-shadow:var(--shadow)}
+    .summary-strip>div{padding:19px;border-right:1px solid var(--line)}
+    .summary-strip>div:last-child{border-right:0}
+    .summary-strip strong{display:block;font-size:18px;margin-top:5px}
+    .label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.09em}
+    .verdict{background:var(--accent-soft)}
+    .verdict strong{color:#f2d39a}
+    .grid-2{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;margin-top:18px}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:21px}
+    .panel h2,.panel h3{margin:0 0 14px;letter-spacing:-.02em}
+    .panel h2{font-size:18px}.panel h3{font-size:15px}
+    .decision{display:grid;grid-template-columns:32px 1fr;gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+    .decision:first-of-type{border-top:0}
+    .rank{width:28px;height:28px;border-radius:6px;background:var(--panel-2);display:grid;place-items:center;font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:11px}
+    .decision strong{display:block;margin-bottom:2px}
+    .decision p{margin:0;color:var(--muted);font-size:12px}
+    .signal{display:flex;gap:9px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+    .signal:first-of-type{border-top:0}
+    .signal b{min-width:88px;font-size:12px}.signal span{color:var(--muted);font-size:12px}
+    .architecture{margin-top:18px;display:grid;gap:12px}
+    .arch-row{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;align-items:stretch}
+    .node{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:14px;min-height:82px}
+    .node.primary{border-color:#68562f;background:#17140e}.node h3{font-size:13px;margin:0 0 5px}.node p{font-size:11px;color:var(--muted);margin:0}
+    .span-12{grid-column:span 12}.span-8{grid-column:span 8}.span-6{grid-column:span 6}.span-4{grid-column:span 4}.span-3{grid-column:span 3}
+    .connector{text-align:center;color:#6d6f73;font-family:"IBM Plex Mono",monospace;line-height:1}
+    .repo-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:22px 0 14px}
+    .search{flex:1;min-width:230px;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:11px 13px;outline:none}
+    .search:focus{border-color:#6f5a31}
+    .filters{display:flex;gap:6px;flex-wrap:wrap}
+    .filter{border:1px solid var(--line);background:transparent;border-radius:999px;padding:8px 11px;color:var(--muted);cursor:pointer;font-size:11px}
+    .filter:hover,.filter.active{border-color:#705b33;background:var(--accent-soft);color:#efd39d}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}
+    table{width:100%;border-collapse:collapse;min-width:950px}
+    th{position:sticky;top:0;background:#16191e;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em;text-align:left;padding:12px;border-bottom:1px solid var(--line)}
+    td{padding:14px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:12px}
+    tr:last-child td{border-bottom:0} tr:hover td{background:#15181c}
+    .repo-name{font-weight:700;text-decoration:none}.repo-name:hover{color:var(--accent)}
+    .tag{display:inline-flex;padding:3px 7px;border-radius:999px;background:#202329;color:#c6c5c0;font-size:10px;margin:1px 2px 1px 0}
+    .fit{font-family:"IBM Plex Mono",monospace;color:var(--good)}
+    .risk{color:var(--warn)}
+    .roadmap{counter-reset:step;display:grid;gap:0}
+    .step{counter-increment:step;display:grid;grid-template-columns:64px 1fr;gap:15px;padding:20px 0;border-top:1px solid var(--line)}
+    .step:first-child{border-top:0}.step:before{content:"0" counter(step);font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:19px}
+    .step h3{margin:0 0 5px}.step p{margin:0;color:var(--muted);font-size:12px}
+    .evidence-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .source{display:flex;justify-content:space-between;gap:12px;border:1px solid var(--line);background:var(--panel);padding:13px 14px;border-radius:8px;text-decoration:none}
+    .source:hover{border-color:#66542f;background:#161718}.source small{color:var(--muted);font-family:"IBM Plex Mono",monospace}
+    .note{margin-top:16px;color:var(--muted);font-size:12px}
+    .mobile-nav{display:none}
+    @media(max-width:900px){
+      .shell{grid-template-columns:1fr}.sidebar{display:none}.topbar{padding:0 16px}.content{padding:24px 16px 80px}
+      .mobile-nav{display:flex;position:fixed;z-index:20;left:10px;right:10px;bottom:10px;background:#16191e;border:1px solid var(--line);border-radius:12px;padding:6px;gap:3px;box-shadow:var(--shadow);overflow:auto}
+      .mobile-nav button{flex:1;min-width:74px;border:0;background:transparent;color:var(--muted);padding:10px 8px;border-radius:8px;font-size:10px}.mobile-nav button.active{background:var(--accent-soft);color:#f0d7a8}
+      .summary-strip{grid-template-columns:1fr 1fr}.summary-strip>div{border-bottom:1px solid var(--line)}.grid-2{grid-template-columns:1fr}
+      .arch-row{grid-template-columns:1fr}.node,.span-12,.span-8,.span-6,.span-4,.span-3{grid-column:1}.evidence-list{grid-template-columns:1fr}
+    }
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="sigil">H</div><div><strong>Hermes Control Tower</strong><span>Research dashboard</span></div></div>
+    <nav aria-label="Secciones">
+      <button class="active" data-target="overview">Resumen ejecutivo</button>
+      <button data-target="architecture">Arquitectura</button>
+      <button data-target="repositories">Repositorios</button>
+      <button data-target="roadmap">Plan de implementación</button>
+      <button data-target="evidence">Fuentes y límites</button>
+    </nav>
+    <div class="side-meta">Open Notebook<code>notebook:&lt;OPEN_NOTEBOOK_ID&gt;</code></div>
+  </aside>
+  <main>
+    <header class="topbar"><div class="status"><span class="dot"></span> Investigación consolidada</div><div class="stamp">CORTE · 2026-09-16</div></header>
+    <div class="content">
+      <section data-view="overview" class="active">
+        <div class="eyebrow">Decision brief / Multi-AgenticOS</div>
+        <h1>De Hermes Agent a una torre de control multiagente.</h1>
+        <p class="lead">Mapa verificable de control planes, runtimes, seguridad, observabilidad y patrones de dashboard. La recomendación preserva Hermes como núcleo y añade una capa operacional desacoplada.</p>
+        <div class="summary-strip">
+          <div class="verdict"><span class="label">Ruta prioritaria</span><strong>AgentTeams + Hermes Workers</strong></div>
+          <div><span class="label">Fuentes guardadas</span><strong>17 repositorios</strong></div>
+          <div><span class="label">Capas separadas</span><strong>Control · Telemetría · UI</strong></div>
+          <div><span class="label">Confianza</span><strong>Alta / Media</strong></div>
+        </div>
+        <div class="grid-2">
+          <article class="panel">
+            <h2>Decisiones principales</h2>
+            <div class="decision"><div class="rank">01</div><div><strong>Conservar Hermes como execution plane</strong><p>Memoria, skills, perfiles, gateway, herramientas, cron y delegación permanecen en el núcleo.</p></div></div>
+            <div class="decision"><div class="rank">02</div><div><strong>Validar AgentTeams antes de construir desde cero</strong><p>Ya soporta Hermes como Worker, con recursos declarativos, dashboard, Matrix, MinIO y gateway de credenciales.</p></div></div>
+            <div class="decision"><div class="rank">03</div><div><strong>Usar un contrato neutral de eventos</strong><p>OpenTelemetry/OpenInference primero; Langfuse, Phoenix u Opik como destinos intercambiables.</p></div></div>
+            <div class="decision"><div class="rank">04</div><div><strong>Separar control de observabilidad</strong><p>Las trazas no reemplazan colas, cancelación, reintentos, workers, permisos ni checkpoints.</p></div></div>
+          </article>
+          <aside class="panel">
+            <h2>Señales críticas</h2>
+            <div class="signal"><b style="color:var(--good)">Encaje directo</b><span>AgentTeams documenta <code>worker.defaultRuntime=hermes</code>.</span></div>
+            <div class="signal"><b style="color:var(--warn)">Restricción</b><span>Hermes es Worker, no Manager, en el contrato actual.</span></div>
+            <div class="signal"><b style="color:var(--info)">UI</b><span>OpenHands aporta el patrón más limpio de frontend desacoplado.</span></div>
+            <div class="signal"><b style="color:var(--risk)">Licencias</b><span>Phoenix usa ELv2; Dify y varios proyectos combinan términos adicionales.</span></div>
+          </aside>
+        </div>
+      </section>
+
+      <section data-view="architecture">
+        <div class="eyebrow">Arquitectura recomendada</div>
+        <h1>Una capa de control sobre runtimes, no dentro de ellos.</h1>
+        <p class="lead">La torre administra recursos, políticas y eventos. Los workers conservan su runtime y contexto especializado.</p>
+        <div class="architecture">
+          <div class="arch-row"><div class="node primary span-12"><h3>Control Tower</h3><p>Fleet · Runs · DAG/Kanban · approvals · costes · trazas · auditoría · pause/resume/cancel</p></div></div>
+          <div class="connector">↓ AG-UI / WebSocket / API</div>
+          <div class="arch-row"><div class="node span-8"><h3>Hermes Control API</h3><p>Auth · policy · scheduler · registry · event log · checkpoints · idempotencia</p></div><div class="node span-4"><h3>Human control</h3><p>Matrix/Element · approvals · incident response</p></div></div>
+          <div class="connector">↓ Manager–Workers / ACP / A2A</div>
+          <div class="arch-row"><div class="node span-4"><h3>Hermes Worker A</h3><p>Perfil · memoria · skills · herramientas</p></div><div class="node span-4"><h3>Hermes Worker B</h3><p>Perfil · memoria · skills · herramientas</p></div><div class="node span-4"><h3>Runtimes externos</h3><p>ACP/A2A · OpenHands · ADK · MAF</p></div></div>
+          <div class="connector">↓ Tools / artifacts / telemetry</div>
+          <div class="arch-row"><div class="node span-3"><h3>MCP + sandboxes</h3><p>Capacidades y aislamiento</p></div><div class="node span-3"><h3>MinIO</h3><p>Artefactos compartidos</p></div><div class="node span-3"><h3>Secret broker</h3><p>Grants y credenciales limitadas</p></div><div class="node span-3"><h3>OTel / OpenInference</h3><p>Trazas y métricas neutrales</p></div></div>
+        </div>
+        <div class="grid-2">
+          <article class="panel"><h2>Modelo mínimo de recursos</h2><p><span class="tag">Runtime</span><span class="tag">Profile / Agent</span><span class="tag">Team</span><span class="tag">Project</span><span class="tag">Task</span><span class="tag">Run</span><span class="tag">Step / ToolCall</span><span class="tag">Artifact</span><span class="tag">Skill</span><span class="tag">Schedule</span><span class="tag">Approval</span><span class="tag">CredentialGrant</span><span class="tag">Event</span></p></article>
+          <article class="panel"><h2>Invariantes</h2><p class="note">Checkpoint por transición · idempotencia · replay · pausa/reanudación · eventos tipados · approvals como estado · compensación explícita · subruns como DAG.</p></article>
+        </div>
+      </section>
+
+      <section data-view="repositories">
+        <div class="eyebrow">Landscape</div>
+        <h1>Repositorios por función y encaje.</h1>
+        <p class="lead">El orden prioriza utilidad para Hermes, no estrellas brutas. Usa filtros o búsqueda para recorrer la matriz.</p>
+        <div class="repo-tools"><input id="repoSearch" class="search" type="search" placeholder="Buscar repositorio, función o riesgo…" aria-label="Buscar repositorios"><div class="filters" id="filters"></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Repositorio</th><th>Capa</th><th>Encaje Hermes</th><th>Aporta</th><th>Riesgo / límite</th></tr></thead><tbody id="repoRows"></tbody></table></div>
+      </section>
+
+      <section data-view="roadmap">
+        <div class="eyebrow">Execution plan</div>
+        <h1>Del PoC al control plane Hermes-native.</h1>
+        <p class="lead">Primero validar contratos y recuperación; después invertir en producto propio.</p>
+        <div class="grid-2">
+          <article class="panel roadmap">
+            <div class="step"><div><h3>PoC AgentTeams</h3><p>Dos Hermes Workers, Team y Project; coordinación visible en Matrix/Element.</p></div></div>
+            <div class="step"><div><h3>Artefactos y secretos</h3><p>Intercambio por MinIO y verificación de credenciales con alcance limitado.</p></div></div>
+            <div class="step"><div><h3>Telemetría neutral</h3><p>Eventos OTel/OpenInference exportados a Langfuse u Opik.</p></div></div>
+            <div class="step"><div><h3>Prueba de recuperación</h3><p>Reiniciar un worker y confirmar checkpoint, retry e idempotencia.</p></div></div>
+            <div class="step"><div><h3>Decisión build vs adopt</h3><p>Comparar AgentTeams con una API Hermes-native inspirada en sus contratos.</p></div></div>
+          </article>
+          <aside class="panel">
+            <h2>Criterios de éxito</h2>
+            <div class="signal"><b>Control</b><span>Start, pause, resume, cancel y retry verificables.</span></div>
+            <div class="signal"><b>Durabilidad</b><span>Recuperación tras fallo sin repetir efectos externos.</span></div>
+            <div class="signal"><b>Seguridad</b><span>El worker no puede leer las credenciales reales.</span></div>
+            <div class="signal"><b>Auditoría</b><span>Cada transición y tool call queda trazable.</span></div>
+            <div class="signal"><b>Coste</b><span>Tokens, modelo y latencia atribuibles por Run y Agent.</span></div>
+            <div class="signal"><b>Portabilidad</b><span>El backend de observabilidad puede cambiar sin migrar el estado canónico.</span></div>
+          </aside>
+        </div>
+      </section>
+
+      <section data-view="evidence">
+        <div class="eyebrow">Evidence ledger</div>
+        <h1>Fuentes primarias y límites.</h1>
+        <p class="lead">Repositorios y documentación oficial consultados. Las afirmaciones comparativas de cada proyecto no se tratan como benchmarks independientes.</p>
+        <div class="evidence-list" id="sourceList"></div>
+        <p class="note">Limitaciones: las estrellas miden atención, no seguridad; no existe un benchmark común entre SDKs, runtimes y control planes; varias afirmaciones “production-ready” provienen de mantenedores. Confianza alta en funciones y estado documentados; media en la composición hasta completar el PoC.</p>
+      </section>
+    </div>
+  </main>
+</div>
+<div class="mobile-nav" aria-label="Navegación móvil">
+  <button class="active" data-target="overview">Resumen</button><button data-target="architecture">Arquitectura</button><button data-target="repositories">Repos</button><button data-target="roadmap">Plan</button><button data-target="evidence">Fuentes</button>
+</div>
+<script>
+const repos = [
+ {name:'AgentTeams',url:'https://github.com/agentscope-ai/AgentTeams',layer:'Control plane',fit:'Prioridad 1',value:'Hermes Workers, CRDs, Matrix, MinIO, dashboard y secret gateway.',risk:'Hermes no puede actuar como Manager actualmente.'},
+ {name:'OpenHands',url:'https://github.com/OpenHands/OpenHands',layer:'Control plane',fit:'Muy alto',value:'Agent Canvas, múltiples backends, ACP, automatizaciones.',risk:'Orientación principal a agentes de software.'},
+ {name:'Agno / AgentOS',url:'https://github.com/agno-agi/agno',layer:'Control plane',fit:'Alto',value:'Runtime, UI, RBAC, multitenencia, approvals, MCP/A2A/AG-UI.',risk:'Duplica runtime, memoria y sesiones de Hermes.'},
+ {name:'kagent',url:'https://github.com/kagent-dev/kagent',layer:'Control plane',fit:'Alto en K8s',value:'CRDs, controller, UI, MCP y OpenTelemetry.',risk:'Joven y acoplado a Kubernetes.'},
+ {name:'Hatchet',url:'https://github.com/hatchet-dev/hatchet',layer:'Durabilidad',fit:'Alto',value:'Colas, retries, prioridades, pause/resume, UI, roles.',risk:'Orquestador general; requiere adaptador Hermes.'},
+ {name:'DeerFlow',url:'https://github.com/bytedance/deer-flow',layer:'Runtime',fit:'Medio-alto',value:'Proyectos largos, subagentes, memoria, sandbox y checkpoints.',risk:'Harness alternativo; estudiar patrones, no sustituir sin PoC.'},
+ {name:'IronClaw',url:'https://github.com/nearai/ironclaw',layer:'Seguridad',fit:'Referencia',value:'WASM, capabilities, secret injection y leak scanning.',risk:'Reimplementación Rust; no justifica reescribir Hermes.'},
+ {name:'Edict',url:'https://github.com/cft0808/edict',layer:'Dashboard',fit:'Referencia UX',value:'Kanban, auditoría, health, costes, pausa y quality gate.',risk:'Claims comparativos propios; auditar seguridad y tests.'},
+ {name:'LangGraph',url:'https://github.com/langchain-ai/langgraph',layer:'Runtime',fit:'Alto',value:'Grafos stateful, checkpoints, durable execution y HITL.',risk:'El control plane completo vive fuera del repo OSS.'},
+ {name:'Microsoft Agent Framework',url:'https://github.com/microsoft/agent-framework',layer:'Runtime',fit:'Alto',value:'Workflows multiagente, checkpoints, time travel y OTel.',risk:'Más reciente que LangGraph; UI de flota por construir.'},
+ {name:'Google ADK',url:'https://github.com/google/adk-python',layer:'Runtime',fit:'Alto',value:'Fan-out/in, loops, retry, Task API, HITL y UI de desarrollo.',risk:'ADK 2.0 introdujo cambios incompatibles con 1.x.'},
+ {name:'AG-UI',url:'https://github.com/ag-ui-protocol/ag-ui',layer:'Dashboard',fit:'Muy alto',value:'Protocolo streaming agente–usuario y estado bidireccional.',risk:'No implementa por sí mismo un dashboard completo.'},
+ {name:'Langfuse',url:'https://github.com/langfuse/langfuse',layer:'Observabilidad',fit:'Alto',value:'Tracing, costes, datasets, evals y prompt management.',risk:'No controla agentes; módulos ee con licencia separada.'},
+ {name:'Arize Phoenix',url:'https://github.com/Arize-ai/phoenix',layer:'Observabilidad',fit:'Alto',value:'OTel/OpenInference, evals, experimentos, replay y MCP.',risk:'Elastic License 2.0; no es scheduler.'},
+ {name:'Hermes Agent',url:'https://github.com/NousResearch/hermes-agent',layer:'Core',fit:'Núcleo',value:'Memoria, skills, perfiles, gateway, tools, cron y delegación.',risk:'Necesita contrato de control multi-runtime estable.'},
+ {name:'OpenClaw',url:'https://github.com/openclaw/openclaw',layer:'Benchmark',fit:'Comparación',value:'Gateway, Control UI, canales, plugins, skills y nodos.',risk:'Benchmark competitivo, no dependencia necesaria.'},
+];
+const sources = [
+ ['Hermes Agent','https://github.com/NousResearch/hermes-agent'],['Hermes Docs','https://hermes-agent.nousresearch.com/docs'],['AgentTeams','https://github.com/agentscope-ai/AgentTeams'],['OpenHands','https://github.com/OpenHands/OpenHands'],['OpenClaw','https://github.com/openclaw/openclaw'],['Agno','https://github.com/agno-agi/agno'],['kagent','https://github.com/kagent-dev/kagent'],['Hatchet','https://github.com/hatchet-dev/hatchet'],['DeerFlow','https://github.com/bytedance/deer-flow'],['IronClaw','https://github.com/nearai/ironclaw'],['Edict','https://github.com/cft0808/edict'],['LangGraph','https://github.com/langchain-ai/langgraph'],['Microsoft Agent Framework','https://github.com/microsoft/agent-framework'],['Google ADK','https://github.com/google/adk-python'],['AG-UI','https://github.com/ag-ui-protocol/ag-ui'],['Langfuse','https://github.com/langfuse/langfuse'],['Arize Phoenix','https://github.com/Arize-ai/phoenix']
+];
+const categories=['Todos',...new Set(repos.map(r=>r.layer))];
+let activeFilter='Todos';
+const filters=document.getElementById('filters');
+const rows=document.getElementById('repoRows');
+const search=document.getElementById('repoSearch');
+function renderFilters(){filters.innerHTML=categories.map(c=>`<button class="filter ${c===activeFilter?'active':''}" data-filter="${c}">${c}</button>`).join('');}
+function renderRows(){const q=search.value.toLowerCase().trim();const data=repos.filter(r=>(activeFilter==='Todos'||r.layer===activeFilter)&&(!q||Object.values(r).join(' ').toLowerCase().includes(q)));rows.innerHTML=data.map(r=>`<tr><td><a class="repo-name" href="${r.url}" target="_blank" rel="noreferrer">${r.name} ↗</a></td><td><span class="tag">${r.layer}</span></td><td class="fit">${r.fit}</td><td>${r.value}</td><td class="risk">${r.risk}</td></tr>`).join('')||'<tr><td colspan="5">Sin resultados para este filtro.</td></tr>';}
+filters.addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;activeFilter=b.dataset.filter;renderFilters();renderRows();});
+search.addEventListener('input',renderRows);
+renderFilters();renderRows();
+document.getElementById('sourceList').innerHTML=sources.map(([n,u],i)=>`<a class="source" href="${u}" target="_blank" rel="noreferrer"><span>${n}</span><small>${String(i+1).padStart(2,'0')} ↗</small></a>`).join('');
+function navigate(target){document.querySelectorAll('section[data-view]').forEach(s=>s.classList.toggle('active',s.dataset.view===target));document.querySelectorAll('[data-target]').forEach(b=>b.classList.toggle('active',b.dataset.target===target));window.scrollTo({top:0,behavior:'smooth'});history.replaceState(null,'','#'+target);}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-target]');if(b)navigate(b.dataset.target);});
+const initial=location.hash.slice(1);if(document.querySelector(`section[data-view="${initial}"]`))navigate(initial);
+</script>
+</body>
+</html>

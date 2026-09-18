@@ -1,0 +1,37 @@
+model:
+  default: gpt-5.6-sol
+  provider: openai-codex
+terminal:
+  cwd: /ABSOLUTE/PATH/TO/notebookvibes
+display:
+  language: es
+delegation:
+  max_concurrent_children: 3
+timezone: America/Cancun
+security:
+  redact_secrets: true
+plugins:
+  enabled:
+    - platforms/telegram
+platforms:
+  telegram:
+    enabled: true
+    # Configura la allowlist con `hermes config set`; no publiques IDs reales.
+    extra:
+      allow_from: '["TELEGRAM_USER_ID"]'
+mcp_servers:
+  open-notebook:
+    command: /ABSOLUTE/PATH/TO/python
+    args:
+      - /ABSOLUTE/PATH/TO/notebookvibes/tools/open_notebook_mcp.py
+    enabled: true
+  research-web:
+    command: /ABSOLUTE/PATH/TO/python
+    args:
+      - /ABSOLUTE/PATH/TO/notebookvibes/tools/research_web_mcp.py
+    enabled: true
+  composio:
+    url: https://connect.composio.dev/mcp
+    connect_timeout: 600
+    auth: oauth
+    enabled: false

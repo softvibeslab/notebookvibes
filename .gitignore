@@ -1,0 +1,67 @@
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+auth.json
+mcp-tokens/
+
+# Hermes runtime/private state
+state.db*
+response_store.db*
+sessions/
+memories/
+logs/
+cron/output/
+runtime/
+cache/
+home/
+channel_directory.json
+gateway*.json
+gateway*.log
+gateway.pid
+gateway.lock
+processes.json
+.hermes_history
+.skills_prompt_snapshot.json
+
+# Application state
+*.db
+*.db-shm
+*.db-wal
+*.sqlite*
+state/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Node/build artifacts
+node_modules/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+
+# Generated/private research artifacts
+*.tar.gz
+*.zip
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.csv
+instagram_data.json
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
