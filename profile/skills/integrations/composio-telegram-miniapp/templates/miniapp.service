@@ -1,0 +1,36 @@
+[Unit]
+Description=Composio Telegram Mini App
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=MINIAPP_USER
+Group=MINIAPP_USER
+WorkingDirectory=/opt/MINIAPP_SERVICE
+EnvironmentFile=/etc/MINIAPP_SERVICE.env
+ExecStart=/usr/bin/python3 /opt/MINIAPP_SERVICE/server.py
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=45
+TimeoutStopSec=30
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/MINIAPP_SERVICE
+UMask=0077
+TasksMax=64
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target
